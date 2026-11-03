@@ -25,6 +25,8 @@
   const octVal = document.getElementById('octVal');
   const volEl = document.getElementById('vol');
   const droneBtn = document.getElementById('drone');
+  const droneVol = { d1: document.getElementById('volSa'), d2: document.getElementById('volPa') };
+  const droneGain = {}; // per-drone-note level nodes, created with the audio context
 
   NOTE_NAMES.forEach((n, i) => {
     const o = document.createElement('option');
@@ -76,6 +78,11 @@
     const formant = ctx.createBiquadFilter();
     formant.type = 'peaking'; formant.frequency.value = 1100; formant.Q.value = 1.2; formant.gain.value = 5;
     filter.connect(formant); formant.connect(master);
+    for (const id of ['d1', 'd2']) {
+      droneGain[id] = ctx.createGain();
+      droneGain[id].gain.value = +droneVol[id].value;
+      droneGain[id].connect(filter);
+    }
     master.connect(comp); comp.connect(ctx.destination);
   }
   function unlock() {
@@ -97,7 +104,7 @@
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, now);
     g.gain.linearRampToValueAtTime(1, now + 0.05);
-    g.connect(filter);
+    g.connect(droneGain[id] || filter);
     // Reed set: two saws slightly detuned (beating like real reeds), plus an
     // octave-down square for the harmonium's body and a quiet octave-up reed.
     const parts = [
@@ -194,6 +201,9 @@
   document.getElementById('octDown').onclick = () => setOct(octave - 1);
   document.getElementById('octUp').onclick = () => setOct(octave + 1);
   volEl.addEventListener('input', () => { if (master) master.gain.value = +volEl.value * 0.5; });
+  for (const id of ['d1', 'd2']) {
+    droneVol[id].addEventListener('input', () => { if (droneGain[id]) droneGain[id].gain.value = +droneVol[id].value; });
+  }
   droneBtn.addEventListener('click', () => {
     const on = droneBtn.getAttribute('aria-pressed') !== 'true';
     droneBtn.setAttribute('aria-pressed', on);
