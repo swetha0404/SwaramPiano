@@ -1,20 +1,15 @@
 (() => {
-  // semitone offset from Sa, label, white/black, computer key
-  const KEYS = [
-    { s: 0,  label: 'S',        white: true,  k: 'a' },
-    { s: 1,  label: 'R1',       white: false, k: 'w' },
-    { s: 2,  label: 'R2 / G1',  white: true,  k: 's' },
-    { s: 3,  label: 'R3 / G2',  white: false, k: 'e' },
-    { s: 4,  label: 'G3',       white: true,  k: 'd' },
-    { s: 5,  label: 'M1',       white: true,  k: 'f' },
-    { s: 6,  label: 'M2',       white: false, k: 't' },
-    { s: 7,  label: 'P',        white: true,  k: 'g' },
-    { s: 8,  label: 'D1',       white: false, k: 'y' },
-    { s: 9,  label: 'D2 / N1',  white: true,  k: 'h' },
-    { s: 10, label: 'D3 / N2',  white: false, k: 'u' },
-    { s: 11, label: 'N3',       white: true,  k: 'j' },
-    { s: 12, label: 'S',        white: true,  k: 'k' },
-  ];
+  // Range: keezh Pa (5 semitones below Sa) up to mel Pa (19 above Sa) = 25 keys
+  const LOW = -5, HIGH = 19;
+  const SWARA = ['S','R1','R2 / G1','R3 / G2','G3','M1','M2','P','D1','D2 / N1','D3 / N2','N3'];
+  const BLACK_PCS = new Set([1, 3, 6, 8, 10]);
+  const KEYS = [];
+  for (let s = LOW; s <= HIGH; s++) {
+    const pc = ((s % 12) + 12) % 12;
+    KEYS.push({ s, pc, white: !BLACK_PCS.has(pc), label: SWARA[pc], oct: Math.floor(s / 12) });
+  }
+  // Computer-keyboard shortcuts for the middle octave only (S .. upper S)
+  const KEYCHARS = 'awsedftgyhujk';
   // Kattai (scale) numbers: C=1, C#=1.5, D=2 ... G=5, G#=5.5 ... B=7
   const NOTE_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
   const KATTAI = ['1','1.5','2','2.5','3','4','4.5','5','5.5','6','6.5','7'];
@@ -35,7 +30,6 @@
   saSel.value = localStorage.getItem('sa') ?? '7';
   let octave = 0;
 
-  // 8 white keys -> boundaries every 12.5% of the inner width
   const WHITE_COUNT = KEYS.filter(k => k.white).length;
   let wi = 0;
   const els = new Map();
@@ -43,12 +37,20 @@
     const d = document.createElement('div');
     d.className = 'key ' + (k.white ? 'white' : 'black');
     d.dataset.semi = k.s;
-    d.innerHTML = `<span>${k.label.replace(' / ', '<br>')}</span>`;
+    // octave marker: dot below = keezh sthayi, dot above = mel sthayi
+    const dot = k.oct < 0 ? '<i class="dot low"></i>' : k.oct > 0 ? '<i class="dot high"></i>' : '';
+    d.innerHTML = `<span class="sw">${k.label.replace(' / ', '<br>')}</span>${dot}<span class="west"></span>`;
     if (k.white) { wi++; }
     else d.dataset.after = wi; // number of white keys to its left
     kb.appendChild(d);
     els.set(k.s, d);
   });
+  // Western note names follow the chosen Sa (e.g. Sa = 5 -> S is G)
+  function updateWestern() {
+    const sa = +saSel.value;
+    KEYS.forEach(k => { els.get(k.s).querySelector('.west').textContent = NOTE_NAMES[(sa + k.pc) % 12]; });
+  }
+  updateWestern();
   function layoutBlacks() {
     const cs = getComputedStyle(kb);
     const pad = parseFloat(cs.paddingLeft);
@@ -173,7 +175,7 @@
 
   // Computer keyboard
   const heldKeys = new Set();
-  const keyMap = Object.fromEntries(KEYS.map(k => [k.k, k.s]));
+  const keyMap = Object.fromEntries([...KEYCHARS].map((c, i) => [c, i]));
   addEventListener('keydown', e => {
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
     const s = keyMap[e.key.toLowerCase()];
@@ -188,14 +190,15 @@
   });
 
   // ---------- Controls ----------
-  function stopAll() { [...voices.keys()].forEach(stopVoice); els.forEach(e => e.classList.remove('active')); pointers.clear(); heldKeys.clear(); }
+  // Stops played notes only; the drone (ids d1/d2) keeps going
+  function stopAll() { [...voices.keys()].filter(id => id[0] === 'k').forEach(stopVoice); els.forEach(e => e.classList.remove('active')); pointers.clear(); heldKeys.clear(); }
   function restartDrone() {
     if (droneBtn.getAttribute('aria-pressed') !== 'true') return;
     stopVoice('d1'); stopVoice('d2');
     startVoice('d1', -12, true); startVoice('d2', -5, true);
   }
   saSel.addEventListener('change', () => {
-    localStorage.setItem('sa', saSel.value); stopAll(); restartDrone();
+    localStorage.setItem('sa', saSel.value); updateWestern(); stopAll(); restartDrone();
   });
   const setOct = n => { octave = Math.max(-2, Math.min(2, n)); octVal.textContent = octave > 0 ? '+' + octave : octave; stopAll(); };
   document.getElementById('octDown').onclick = () => setOct(octave - 1);
