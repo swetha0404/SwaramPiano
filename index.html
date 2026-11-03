@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Swara Harmonium</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#3b1d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Swaras">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Swara Harmonium</h1>
+  <div class="controls">
+    <label>Sa
+      <select id="sa"></select>
+    </label>
+    <label>Octave
+      <span class="oct">
+        <button id="octDown" aria-label="Octave down">−</button>
+        <output id="octVal">0</output>
+        <button id="octUp" aria-label="Octave up">+</button>
+      </span>
+    </label>
+    <label>Volume
+      <input id="vol" type="range" min="0" max="1" step="0.01" value="0.7">
+    </label>
+    <button id="drone" class="toggle" aria-pressed="false">Drone (Sa Pa)</button>
+  </div>
+</header>
+
+<main>
+  <div id="keyboard" aria-label="Swara keyboard"></div>
+  <p class="hint">Tap or slide across keys. Computer keys: A W S E D F T G Y H U J K</p>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
